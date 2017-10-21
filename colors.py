@@ -9,14 +9,14 @@ List of colors 'xkcd_colors.csv' has been obtained from
 https://xkcd.com/color/rgb/
 """
 
-col_files = {'wiki': 'wiki_colors.csv', 'xkcd': 'xkcd_colors/xkcd_colors.csv'}
+col_files = {'wiki': 'wiki_colors/wiki_colors.csv', 'xkcd': 'xkcd_colors/xkcd_colors.csv'}
 # read in both color lists
 colors = {key: {} for key in col_files}
 for key, fname in col_files.items():
     with open(fname) as f:
         lis = [line.split(',') for line in f]
         for hex_val, name in lis:
-            colors[key][hex_val] = (name.rstrip(), int(hex_val, base=16))
+            colors[key][hex_val] = name.rstrip()
 
 
 class Color:
@@ -28,58 +28,56 @@ class Color:
     cols: str, optional (default='xkcd')
             color list ('xkcd', 'wiki')
     """
+
     def __init__(self, value, colset='xkcd'):
-        self.value = value.replace('#', '0x') 
+        self.value = value.replace('#', '0x')
         self.colset = colset
+
+    def __str__(self):
+        return self.value
+
+    def __repr__(self):
+        return self.value
 
     def nearest_match(self):
         # Find the nearest matching color from the list
-        hex_val = hex(int(self.value, base=16))
-
-        if hex_val in colors[self.colset]:
-            return "Exact Match Found: " + colors[self.colset][hex_val][0]
-        else:
-            # This is not the correct way of comparing colors
-            # See https://en.wikipedia.org/wiki/Color_difference
-            color = None
-            min = 16777215  # FFFFFF
-            color_int = int(self.value, base=16)
-            for item in colors[self.colset].values():
-                if abs(item[1] - color_int) < min:
-                    min = abs(item[1] - color_int)
-                    color = item[0]
-            return "Nearest Match: " + color
-    def RGB_cartesian_match(self):
-        #eucledian
         color = None
-        min = 16777215  # FFFFFF
-        for item in colors[self.colset].values():
-            colorCompareHex = "0x{:06x}".format(item[1])
-            if self.eucleanCalculate(self.value, colorCompareHex) < min:
-                min = self.eucleanCalculate(self.value, colorCompareHex)
-                color = item[0]
+        min_diff = 16777215  # FFFFFF
+        for hex_color, color_name in colors[self.colset].items():
+            color_to_compare_hex = hex_color
+            if self.euclidean_calculate(self.value, color_to_compare_hex) < min_diff:
+                min_diff = self.euclidean_calculate(self.value, color_to_compare_hex)
+                color = color_name.title()
         return "Nearest Match: " + color
-	
-    def eucleanCalculate(self, C1, C2):
-        # self un-needed here but python will riase argument exception since it passes it automatically
-        # check the last formula in https://en.wikipedia.org/wiki/Color_difference#Euclidean
-        #c1 rgb
-        C1 = C1.replace('0x', '')
-        C2 = C2.replace('0x', '')
-        C1_R_int = int(C1[0:2], base=16)
-        C1_G_int = int(C1[2:4], base=16)
-        C1_B_int = int(C1[4:6], base=16)
-        #c2 rgb
-        C2_R_int = int(C2[0:2], base=16)
-        C2_G_int = int(C2[2:4], base=16)
-        C2_B_int = int(C2[4:6], base=16)
-        #delta square
-        deltaR = (C1_R_int - C2_R_int)**2 
-        deltaG = (C1_G_int - C2_G_int)**2 
-        deltaB = (C1_B_int - C2_B_int)**2
-        r = (C1_R_int + C2_R_int)/2
-        deltaC = ((2 + r/256)*deltaR + 4*deltaG + (2 + (255 - r)/2)*deltaB)
-        return deltaC**0.5
 
-        
-        
+    def euclidean_calculate(self, c1, c2):
+        # Check the last formula in https://en.wikipedia.org/wiki/Color_difference#Euclidean
+        # c1 rgb
+        c1 = self.hex_to_rgb(c1)
+        # c2 rgb
+        c2 = self.hex_to_rgb(c2)
+        # delta square
+        delta_r = (c1[0] - c2[0]) ** 2
+        delta_g = (c1[1] - c2[1]) ** 2
+        delta_b = (c1[2] - c2[2]) ** 2
+        r = (c1[0] + c2[0]) / 2
+        delta_c = ((2 + r / 256) * delta_r + 4 * delta_g + (2 + (255 - r) / 2) * delta_b)
+        return delta_c ** 0.5
+
+    def hex_to_rgb(self, hex_value):
+        # This method takes in a hex value and returns a corresponding tuple in r g b format
+        hex_value = hex_value.replace('0x', '')
+        r = int(hex_value[0:2], base=16)
+        g = int(hex_value[2:4], base=16)
+        b = int(hex_value[4:6], base=16)
+        return (r, g, b)
+
+    def mix(self, other_color):
+        # Mix the current color of object with some other color and return the hex value
+        color_one = self.hex_to_rgb(self.value)
+        color_two = self.hex_to_rgb(str(other_color).replace('#', '0x'))
+        mixed_color = ((color_one[0] + color_two[0]) // 2,
+                       (color_one[1] + color_two[1]) // 2,
+                       (color_one[2] + color_two[2]) // 2)
+        mixed_color_hex = "0x{0:02x}{1:02x}{2:02x}".format(mixed_color[0], mixed_color[1], mixed_color[2])
+        self.value = mixed_color_hex

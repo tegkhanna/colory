@@ -8,12 +8,20 @@
 ```python
 
 >>> from colors import Color
->>> a=Color('#FFFFFF')
+>>> a=Color('#ffffff')
+>>> b=Color('#000000')
 >>> a.nearest_match()
-'Exact Match Found: White'
->>> b=Color('#FFFF10')	
+'Nearest Match: white'
 >>> b.nearest_match()
-'Nearest Match: Yellow'
+'Nearest Match: black'
+
+Mix Color
+>>> a.mix(b)
+>>> a.nearest_match()
+'Nearest Match: medium grey'
+>>> a
+0x7f7f7f
+
 
 ```
 
